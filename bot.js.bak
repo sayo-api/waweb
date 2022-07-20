@@ -1,0 +1,59 @@
+const qrcode = require("qrcode-terminal")
+const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js")
+
+
+let sessionPath = `./ayu.json`
+
+async function onlainekk() {
+    const hisoka = new Client({
+        authStrategy: new LocalAuth({
+            dataPath: `./ayu.json`
+        }),
+        puppeteer: {
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        }
+    })
+
+    hisoka.initialize()
+
+    if (global.opts["server"]) {
+        require("./lib/Server")(hisoka, process.env.PORT || 8000)
+    } else if (!global.opts["server"]) {
+        hisoka.on("qr", qr => {
+            qrcode.generate(qr, { small: true })
+        })
+    }
+
+    hisoka.on("authenticated", async(auth) => {
+        console.log(auth)
+    })
+
+    hisoka.on("auth_failure", async(auth_err) => {
+        console.log(auth_err)
+    })
+
+    hisoka.on("ready", () => {
+        console.log(chalk.greenBright("Bot On"))
+    })
+
+    hisoka.on("disconnected", async(reason) => {
+        console.log("Desconectou aqui ", reason)
+        onlainekk()
+    })
+
+    hisoka.on("message_create", (msg) => {
+        try {
+            if (!msg) return
+            if (!global.options.public && !msg.fromMe) return
+            if (msg.id.id.startsWith("3EB") && msg.id.id.length == 20) return
+            require("./botwa")(hisoka, msg, Commands)
+        } catch(e) {
+            console.error(e)
+        }
+    })
+
+    return hisoka
+}
+
+onlainekk()
